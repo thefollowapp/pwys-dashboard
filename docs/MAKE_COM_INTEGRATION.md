@@ -13,7 +13,7 @@ dashboard's environment config). Use a Make.com **HTTP → Make a request** modu
 Add this HTTP module immediately after each Twilio "Create a Message" module in the
 router (all five location branches).
 
-`POST https://<your-dashboard-domain>/api/ingest/sms`
+`POST https://pwys.revupwithai.com/api/ingest/sms`
 
 ```json
 {
@@ -36,7 +36,7 @@ Only)" field, which is blank ~50% of the time).
 Add this on the scenario that watches Twilio's inbound webhook / "Watch Incoming Messages"
 trigger.
 
-`POST https://<your-dashboard-domain>/api/ingest/sms`
+`POST https://pwys.revupwithai.com/api/ingest/sms`
 
 ```json
 {
@@ -56,7 +56,7 @@ breakdown for that row.
 This is parked until Robly credentials land (see handoff doc — blocked on Keith). Once
 the Robly HTTP module is added to Make.com per the existing plan, add a matching call:
 
-`POST https://<your-dashboard-domain>/api/ingest/email`
+`POST https://pwys.revupwithai.com/api/ingest/email`
 
 ```json
 {

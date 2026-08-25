@@ -1,5 +1,9 @@
 # Deploying the PWYS dashboard
 
+**Status: done.** Live at `https://pwys.revupwithai.com`, hosted on Railway
+(project `pwys-dashboard`) with a Postgres addon. The steps below are kept as
+reference for redeploying, onboarding another environment, or recovering access.
+
 ## 1. Host the app + database
 
 Recommended: **Railway** (or Render) — both auto-detect the `Procfile`, support Postgres

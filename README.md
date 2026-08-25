@@ -55,8 +55,9 @@ docs/
 ## Status
 
 - [x] Core app: auth, dashboard, ingest API, metrics
-- [ ] Deployed to production host
-- [ ] `dashboard.revupwithai.com` DNS pointed at it (GoDaddy)
+- [x] Deployed to production (Railway, with a Postgres addon)
+- [x] Live at `https://pwys.revupwithai.com` (GoDaddy CNAME + TXT verification)
+- [x] Robby's admin account created
 - [ ] Make.com scenario updated to POST SMS events (see docs/MAKE_COM_INTEGRATION.md)
 - [ ] Robly email logging wired in — **blocked on Keith delivering Robly API
       credentials**, per the PWYS automation handoff. The dashboard already supports
