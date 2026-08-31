@@ -41,6 +41,17 @@ def get_summary(db: Session, days: int | None = 30, location: str | None = None)
         )
     ) or 0
 
+    def _sent_by_type(message_type: str) -> int:
+        return db.scalar(
+            select(func.count()).select_from(
+                sms_q.where(SmsEvent.direction == "outbound", SmsEvent.message_type == message_type).subquery()
+            )
+        ) or 0
+
+    registration_sent = _sent_by_type("registration")
+    weekly_practice_sent = _sent_by_type("weekly_practice")
+    game_day_sent = _sent_by_type("game_day")
+
     emails_sent = db.scalar(
         select(func.count()).select_from(email_q.where(EmailEvent.event_type == "sent").subquery())
     ) or 0
@@ -63,6 +74,9 @@ def get_summary(db: Session, days: int | None = 30, location: str | None = None)
         "sms_sent": sms_sent,
         "sms_replies": sms_replies,
         "sms_reply_rate": sms_reply_rate,
+        "registration_sent": registration_sent,
+        "weekly_practice_sent": weekly_practice_sent,
+        "game_day_sent": game_day_sent,
         "emails_sent": emails_sent,
         "emails_opened": emails_opened,
         "emails_clicked": emails_clicked,
@@ -114,10 +128,15 @@ def get_recent_activity(db: Session, limit: int = 25) -> list[dict]:
     sms_rows = db.scalars(select(SmsEvent).order_by(SmsEvent.created_at.desc()).limit(limit)).all()
     email_rows = db.scalars(select(EmailEvent).order_by(EmailEvent.created_at.desc()).limit(limit)).all()
 
+    _type_labels = {"registration": "Registration", "weekly_practice": "Weekly practice", "game_day": "Game Day"}
     activity = [
         {
             "type": "SMS",
-            "detail": f"{row.direction} · {row.status}" + (f" · {row.location}" if row.location else ""),
+            "detail": (
+                (_type_labels.get(row.message_type, row.message_type) + " · " if row.message_type else "")
+                + f"{row.direction} · {row.status}"
+                + (f" · {row.location}" if row.location else "")
+            ),
             "created_at": row.created_at,
         }
         for row in sms_rows

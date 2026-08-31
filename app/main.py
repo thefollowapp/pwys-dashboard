@@ -8,12 +8,13 @@ from sqlalchemy.orm import Session
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.auth import NotAuthenticated, get_current_user, hash_password, login_user, logout_user, require_user, verify_password
-from app.database import Base, engine, get_db
+from app.database import Base, engine, get_db, run_column_migrations
 from app.ingest import router as ingest_router
 from app.metrics import get_locations, get_recent_activity, get_summary, get_timeseries
 from app.models import User
 
 Base.metadata.create_all(bind=engine)
+run_column_migrations()
 
 app = FastAPI(title="PWYS Communications Dashboard")
 

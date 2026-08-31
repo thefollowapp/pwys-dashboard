@@ -1,7 +1,7 @@
 import os
 
 from dotenv import load_dotenv
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 load_dotenv()
@@ -23,3 +23,18 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def run_column_migrations() -> None:
+    """Add columns introduced after a table already existed in production.
+
+    `Base.metadata.create_all` only creates missing tables, so a new column on an
+    existing table needs to be added by hand here. Safe to run on every startup.
+    """
+    inspector = inspect(engine)
+    if "sms_events" not in inspector.get_table_names():
+        return
+    existing_columns = {col["name"] for col in inspector.get_columns("sms_events")}
+    if "message_type" not in existing_columns:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE sms_events ADD COLUMN message_type VARCHAR(32)"))

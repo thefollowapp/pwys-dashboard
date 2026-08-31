@@ -10,8 +10,13 @@ dashboard's environment config). Use a Make.com **HTTP → Make a request** modu
 
 ## 1. Logging an outbound SMS send
 
-Add this HTTP module immediately after each Twilio "Create a Message" module in the
-router (all five location branches).
+Add this HTTP module immediately after each Twilio "Create a Message" module — in the
+Registration Automation scenario (both outbound messages) and in the Game Day scenario.
+Set `message_type` per send point so the dashboard can break activity down by type:
+
+- Registration Automation, message 1 (registration confirmation) → `"registration"`
+- Registration Automation, message 2 (weekly practice schedule) → `"weekly_practice"`
+- Game Day scenario → `"game_day"`
 
 `POST https://pwys.revupwithai.com/api/ingest/sms`
 
@@ -21,6 +26,7 @@ router (all five location branches).
   "direction": "outbound",
   "status": "sent",
   "location": "{{Locations → Text}}",
+  "message_type": "registration",
   "monday_item_id": "{{Monday item ID}}",
   "twilio_sid": "{{Twilio message Sid}}",
   "body": "{{message body}}"
@@ -29,7 +35,10 @@ router (all five location branches).
 
 Use the confirmed field paths from the existing scenario — `phone_mm63qf51 → text` for
 phone, `Locations → Text` for location (not the "Location of Next Practice (Automation
-Only)" field, which is blank ~50% of the time).
+Only)" field, which is blank ~50% of the time). `message_type` must be one of
+`registration`, `weekly_practice`, `game_day` — omit it (or leave blank) for any send
+that doesn't fit one of those three; the dashboard still counts it toward total SMS
+sent, just not toward a specific type card.
 
 ## 2. Logging an inbound SMS reply (including STOP)
 

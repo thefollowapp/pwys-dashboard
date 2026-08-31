@@ -61,6 +61,27 @@
   </div>
 </div>
 
+<div class="mb-8">
+  <div class="text-sm font-medium text-slate-700 mb-3">SMS by type</div>
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="bg-white rounded-lg shadow p-5">
+      <div class="text-sm text-slate-500">Registration texts</div>
+      <div class="text-3xl font-semibold mt-1">{{ summary.registration_sent }}</div>
+      <div class="text-xs text-slate-400 mt-1">Sent when someone registers</div>
+    </div>
+    <div class="bg-white rounded-lg shadow p-5">
+      <div class="text-sm text-slate-500">Weekly practice texts</div>
+      <div class="text-3xl font-semibold mt-1">{{ summary.weekly_practice_sent }}</div>
+      <div class="text-xs text-slate-400 mt-1">Weekly practice schedule reminder</div>
+    </div>
+    <div class="bg-white rounded-lg shadow p-5">
+      <div class="text-sm text-slate-500">Game Day texts</div>
+      <div class="text-3xl font-semibold mt-1">{{ summary.game_day_sent }}</div>
+      <div class="text-xs text-slate-400 mt-1">Friday Game Day reminder</div>
+    </div>
+  </div>
+</div>
+
 <div class="bg-white rounded-lg shadow p-5 mb-8">
   <div class="text-sm font-medium text-slate-700 mb-3">Sends over time</div>
   <canvas id="timeseriesChart" height="90"></canvas>

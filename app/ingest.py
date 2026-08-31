@@ -32,6 +32,7 @@ def ingest_sms(event: SmsEventIn, db: Session = Depends(get_db)):
         contact_phone=event.contact_phone,
         location=event.location,
         program_tier=event.program_tier,
+        message_type=event.message_type,
         direction=event.direction,
         status=event.status,
         body=event.body,
