@@ -52,6 +52,7 @@ def get_summary(db: Session, days: int | None = 30, location: str | None = None)
     weekly_practice_sent = _sent_by_type("weekly_practice")
     game_day_sent = _sent_by_type("game_day")
     cancellation_sent = _sent_by_type("cancellation")
+    move_indoors_sent = _sent_by_type("move_indoors")
 
     emails_sent = db.scalar(
         select(func.count()).select_from(email_q.where(EmailEvent.event_type == "sent").subquery())
@@ -79,6 +80,7 @@ def get_summary(db: Session, days: int | None = 30, location: str | None = None)
         "weekly_practice_sent": weekly_practice_sent,
         "game_day_sent": game_day_sent,
         "cancellation_sent": cancellation_sent,
+        "move_indoors_sent": move_indoors_sent,
         "emails_sent": emails_sent,
         "emails_opened": emails_opened,
         "emails_clicked": emails_clicked,
@@ -135,6 +137,7 @@ def get_recent_activity(db: Session, limit: int = 25) -> list[dict]:
         "weekly_practice": "Weekly practice",
         "game_day": "Game Day",
         "cancellation": "Cancellation",
+        "move_indoors": "Move indoors",
     }
     activity = [
         {

@@ -3,31 +3,49 @@ import os
 import httpx
 
 
-class CancellationNoticeError(Exception):
-    """Raised when the Make.com cancellation webhook isn't configured or rejects the request."""
+class NoticeError(Exception):
+    """Raised when a notice webhook isn't configured or rejects the request."""
 
 
-def send_cancellation_notice(location: str, message: str, triggered_by: str) -> None:
-    webhook_url = os.getenv("CANCELLATION_WEBHOOK_URL")
+def _post_to_webhook(url_env: str, api_key_env: str, payload: dict, webhook_label: str) -> None:
+    webhook_url = os.getenv(url_env)
     if not webhook_url:
-        raise CancellationNoticeError(
-            "CANCELLATION_WEBHOOK_URL is not configured on the server yet. "
-            "Set it in Railway once the Make.com cancellation scenario's webhook is live."
+        raise NoticeError(
+            f"{url_env} is not configured on the server yet. "
+            f"Set it in Railway once the Make.com {webhook_label} scenario's webhook is live."
         )
-    webhook_api_key = os.getenv("CANCELLATION_WEBHOOK_API_KEY")
+    webhook_api_key = os.getenv(api_key_env)
     if not webhook_api_key:
-        raise CancellationNoticeError(
-            "CANCELLATION_WEBHOOK_API_KEY is not configured on the server yet. "
-            "Set it in Railway to match the API key on the Make.com webhook."
+        raise NoticeError(
+            f"{api_key_env} is not configured on the server yet. "
+            f"Set it in Railway to match the API key on the Make.com {webhook_label} webhook."
         )
 
     try:
         response = httpx.post(
             webhook_url,
-            json={"location": location, "message": message, "triggered_by": triggered_by},
+            json=payload,
             headers={"x-make-apikey": webhook_api_key},
             timeout=15,
         )
         response.raise_for_status()
     except httpx.HTTPError as exc:
-        raise CancellationNoticeError(f"Make.com didn't accept the request: {exc}") from exc
+        raise NoticeError(f"Make.com didn't accept the request: {exc}") from exc
+
+
+def send_cancellation_notice(location: str, message: str, triggered_by: str) -> None:
+    _post_to_webhook(
+        "CANCELLATION_WEBHOOK_URL",
+        "CANCELLATION_WEBHOOK_API_KEY",
+        {"location": location, "message": message, "triggered_by": triggered_by},
+        "cancellation notice",
+    )
+
+
+def send_move_indoors_notice(excluded_locations: list[str], message: str, triggered_by: str) -> None:
+    _post_to_webhook(
+        "MOVE_INDOORS_WEBHOOK_URL",
+        "MOVE_INDOORS_WEBHOOK_API_KEY",
+        {"excluded_locations": excluded_locations, "message": message, "triggered_by": triggered_by},
+        "move indoors notice",
+    )

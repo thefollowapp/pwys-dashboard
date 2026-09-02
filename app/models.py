@@ -31,7 +31,7 @@ class SmsEvent(Base):
     contact_phone: Mapped[str] = mapped_column(String(32), index=True)
     location: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
     program_tier: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    # "registration" | "weekly_practice" | "game_day" | "cancellation"; null for inbound replies and anything untagged.
+    # "registration" | "weekly_practice" | "game_day" | "cancellation" | "move_indoors"; null for inbound replies and anything untagged.
     message_type: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
     direction: Mapped[str] = mapped_column(String(16))  # "outbound" | "inbound"
     status: Mapped[str] = mapped_column(String(32))  # "sent" | "delivered" | "failed" | "received"

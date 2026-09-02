@@ -18,6 +18,7 @@ Set `message_type` per send point so the dashboard can break activity down by ty
 - Registration Automation, message 2 (weekly practice schedule) → `"weekly_practice"`
 - Game Day scenario → `"game_day"`
 - Cancellation Notice scenario (see section 4 below) → `"cancellation"`
+- Move Indoors Notice scenario (see section 5 below) → `"move_indoors"`
 
 `POST https://pwys.revupwithai.com/api/ingest/sms`
 
@@ -37,9 +38,9 @@ Set `message_type` per send point so the dashboard can break activity down by ty
 Use the confirmed field paths from the existing scenario — `phone_mm63qf51 → text` for
 phone, `Locations → Text` for location (not the "Location of Next Practice (Automation
 Only)" field, which is blank ~50% of the time). `message_type` must be one of
-`registration`, `weekly_practice`, `game_day`, `cancellation` — omit it (or leave blank)
-for any send that doesn't fit one of those, the dashboard still counts it toward total
-SMS sent, just not toward a specific type card.
+`registration`, `weekly_practice`, `game_day`, `cancellation`, `move_indoors` — omit it
+(or leave blank) for any send that doesn't fit one of those, the dashboard still counts
+it toward total SMS sent, just not toward a specific type card.
 
 ## 2. Logging an inbound SMS reply (including STOP)
 
@@ -125,6 +126,45 @@ Two environment variables on Railway wire the dashboard to this webhook:
 `CANCELLATION_WEBHOOK_URL` (the webhook URL) and `CANCELLATION_WEBHOOK_API_KEY` (the
 matching API key). Until both are set, the "Send cancellation notice" page shows a clear
 error instead of silently failing.
+
+## 5. Dashboard-triggered "move indoors" notices
+
+Same dashboard page (`/notices/new`, "Notice type" set to "Move indoors") also blasts a
+text to every registered family **except** whichever locations staff checked off — e.g.
+"activity is cancelled but you can move indoors, except at Parkway Village and Jackson
+Elementary." This is its own Make.com **Custom webhook** scenario ("Move Indoors
+Notice"), API-key protected the same way, separate from every other scenario.
+
+Dashboard → Make.com webhook request:
+
+```
+POST https://hook.us2.make.com/<webhook id>
+x-make-apikey: <the key configured on the webhook>
+Content-Type: application/json
+
+{
+  "excluded_locations": ["Parkway Village", "Jackson Elementary"],
+  "message": "This week's activity is cancelled due to weather, but you can move indoors! / La actividad de esta semana esta cancelada por el clima, pero pueden moverse adentro!",
+  "triggered_by": "ryates051@gmail.com"
+}
+```
+
+`excluded_locations` can be an empty array — that means send to every location, no
+exceptions.
+
+The scenario:
+
+1. Triggers on the custom webhook (API-key auth required).
+2. Lists the monday.com board's items (limit 500, same reasoning as the cancellation
+   scenario).
+3. Filters to items whose `Locations → Text` is **not** one of the incoming
+   `excluded_locations`, then sends an SMS via Twilio (`to` = `phone_mm63qf51 → text`,
+   `body` = the incoming `message`, verbatim).
+4. After each Twilio send, logs it with an **Ingest SMS** HTTP module, with
+   `"message_type": "move_indoors"`.
+
+Two more environment variables on Railway wire this one up: `MOVE_INDOORS_WEBHOOK_URL`
+and `MOVE_INDOORS_WEBHOOK_API_KEY`.
 
 ## Notes
 
