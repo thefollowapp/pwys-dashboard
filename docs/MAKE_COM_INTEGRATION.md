@@ -91,9 +91,17 @@ webhook** scenario, which reuses the existing Twilio and monday.com connections 
 actual lookup and send. This is the "Cancellation Notice" scenario; it's separate from
 the Registration Automation and Game Day scenarios and doesn't touch them.
 
-Dashboard → Make.com webhook payload:
+The webhook is protected with Make's API-key authentication (`x-make-apikey` header) —
+the dashboard sends it on every request, so this endpoint isn't callable by anyone who
+just finds the URL.
 
-```json
+Dashboard → Make.com webhook request:
+
+```
+POST https://hook.us2.make.com/<webhook id>
+x-make-apikey: <the key configured on the webhook>
+Content-Type: application/json
+
 {
   "location": "Kroc Center",
   "message": "Practice is cancelled today. We'll see you next time! / La practica de hoy esta cancelada. Nos vemos la proxima vez!",
@@ -101,19 +109,21 @@ Dashboard → Make.com webhook payload:
 }
 ```
 
-The scenario should:
+The scenario:
 
-1. Trigger on the custom webhook.
-2. List the monday.com board's items, filtered to where `Locations → Text` equals the
-   incoming `location`.
-3. For each matching item, send an SMS via Twilio (`to` = `phone_mm63qf51 → text`,
-   `body` = the incoming `message`, verbatim — the dashboard form already lets staff
-   review it before sending, so don't template or translate it further).
-4. After each Twilio send, log it with an **Ingest SMS** HTTP module exactly like the
+1. Triggers on the custom webhook (API-key auth required).
+2. Lists the monday.com board's items (limit 500, so it doesn't miss registrations —
+   the location filter happens downstream, not on this module).
+3. Filters to where `Locations → Text` equals the incoming `location`, then sends an SMS
+   via Twilio (`to` = `phone_mm63qf51 → text`, `body` = the incoming `message`, verbatim
+   — the dashboard form already lets staff review it before sending, so don't template
+   or translate it further).
+4. After each Twilio send, logs it with an **Ingest SMS** HTTP module exactly like the
    Game Day scenario's, with `"message_type": "cancellation"`.
 
-The webhook's URL goes into the dashboard's `CANCELLATION_WEBHOOK_URL` environment
-variable on Railway. Until that's set, the "Send cancellation notice" page will show an
+Two environment variables on Railway wire the dashboard to this webhook:
+`CANCELLATION_WEBHOOK_URL` (the webhook URL) and `CANCELLATION_WEBHOOK_API_KEY` (the
+matching API key). Until both are set, the "Send cancellation notice" page shows a clear
 error instead of silently failing.
 
 ## Notes
