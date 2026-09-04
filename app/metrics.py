@@ -89,6 +89,18 @@ def get_summary(db: Session, days: int | None = 30, location: str | None = None)
     }
 
 
+PRACTICE_LOCATIONS = [
+    "Jackson Park",
+    "Willow Oaks Elementary",
+    "Parkway Village Elementary",
+    "Treadwell Park",
+    "Crenshaw Park",
+    "Gaisman Park",
+    "Gaston Park",
+    "Jennette Place",
+]
+
+
 def get_locations(db: Session) -> list[str]:
     sms_locations = db.scalars(
         select(SmsEvent.location).where(SmsEvent.location.is_not(None)).distinct()
@@ -96,7 +108,7 @@ def get_locations(db: Session) -> list[str]:
     email_locations = db.scalars(
         select(EmailEvent.location).where(EmailEvent.location.is_not(None)).distinct()
     ).all()
-    return sorted(set(sms_locations) | set(email_locations))
+    return sorted(set(PRACTICE_LOCATIONS) | set(sms_locations) | set(email_locations))
 
 
 def get_timeseries(db: Session, days: int = 30, location: str | None = None) -> list[dict]:
