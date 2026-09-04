@@ -90,11 +90,11 @@ def get_summary(db: Session, days: int | None = 30, location: str | None = None)
 
 
 PRACTICE_LOCATIONS = [
-    "Jackson Park",
+    "Jackson Elementary",
     "Willow Oaks Elementary",
     "Parkway Village Elementary",
     "Treadwell Park",
-    "Crenshaw Park",
+    "Binghampton",
     "Gaisman Park",
     "Gaston Park",
     "Jennette Place",
