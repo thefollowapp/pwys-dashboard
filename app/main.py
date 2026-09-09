@@ -122,17 +122,18 @@ def notice_submit(
     request: Request,
     notice_type: str = Form(...),
     message: str = Form(...),
-    location: str | None = Form(None),
+    notify_locations: list[str] = Form([]),
     excluded_locations: list[str] = Form([]),
     confirm: str | None = Form(None),
     user: User = Depends(require_user),
     db: Session = Depends(get_db),
 ):
+    all_locations = get_locations(db)
     form_state = {
         "user": user,
-        "locations": get_locations(db),
+        "locations": all_locations,
         "notice_type": notice_type,
-        "location": location,
+        "selected_locations": notify_locations,
         "excluded_locations": excluded_locations,
         "message": message,
     }
@@ -141,9 +142,9 @@ def notice_submit(
         return templates.TemplateResponse(
             request, "notice_new.html", {**form_state, "error": "Please check the confirmation box to send."}, status_code=400
         )
-    if notice_type == "cancellation" and not location:
+    if notice_type == "cancellation" and not notify_locations:
         return templates.TemplateResponse(
-            request, "notice_new.html", {**form_state, "error": "Please select a location."}, status_code=400
+            request, "notice_new.html", {**form_state, "error": "Please select at least one location."}, status_code=400
         )
     if notice_type not in ("cancellation", "move_indoors"):
         return templates.TemplateResponse(
@@ -152,8 +153,9 @@ def notice_submit(
 
     try:
         if notice_type == "cancellation":
-            send_cancellation_notice(location=location, message=message, triggered_by=user.email)
-            success = f"Cancellation notice for {location} was sent to Make.com for delivery."
+            send_cancellation_notice(locations=notify_locations, message=message, triggered_by=user.email)
+            locations_note = "all locations" if set(notify_locations) == set(all_locations) else ", ".join(notify_locations)
+            success = f"Cancellation notice for {locations_note} was sent to Make.com for delivery."
         else:
             send_move_indoors_notice(excluded_locations=excluded_locations, message=message, triggered_by=user.email)
             excluded_note = f" (excluding {', '.join(excluded_locations)})" if excluded_locations else ""

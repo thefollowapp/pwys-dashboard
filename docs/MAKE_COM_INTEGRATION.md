@@ -85,8 +85,9 @@ whichever mechanism is used, map it to `event_type: "opened"` / `"clicked"` /
 
 ## 4. Dashboard-triggered cancellation notices
 
-The dashboard has a "Send cancellation notice" button (`/cancellations/new`) that a staff
-member uses to blast a cancellation text to everyone registered at one location. It does
+The dashboard has a "Send notice" page (`/notices/new`, "Notice type" set to "Cancellation")
+that a staff member uses to blast a cancellation text to everyone registered at one or more
+selected locations (a "Select all" shortcut covers every location at once). It does
 **not** talk to Twilio or monday.com directly — it POSTs to a new Make.com **Custom
 webhook** scenario, which reuses the existing Twilio and monday.com connections to do the
 actual lookup and send. This is the "Cancellation Notice" scenario; it's separate from
@@ -104,21 +105,26 @@ x-make-apikey: <the key configured on the webhook>
 Content-Type: application/json
 
 {
-  "location": "Kroc Center",
+  "locations": ["Kroc Center", "Treadwell Park"],
   "message": "Practice is cancelled today. We'll see you next time! / La practica de hoy esta cancelada. Nos vemos la proxima vez!",
   "triggered_by": "ryates051@gmail.com"
 }
 ```
+
+`locations` is always a non-empty array — the dashboard requires at least one location
+to be checked before it will submit. To reach everyone, staff use the "Select all"
+shortcut, which just checks every location box (still sent as an explicit array, not a
+special "all" value).
 
 The scenario:
 
 1. Triggers on the custom webhook (API-key auth required).
 2. Lists the monday.com board's items (limit 500, so it doesn't miss registrations —
    the location filter happens downstream, not on this module).
-3. Filters to where `Locations → Text` equals the incoming `location`, then sends an SMS
-   via Twilio (`to` = `phone_mm63qf51 → text`, `body` = the incoming `message`, verbatim
-   — the dashboard form already lets staff review it before sending, so don't template
-   or translate it further).
+3. Filters to where `Locations → Text` is one of the incoming `locations` (array:contain),
+   then sends an SMS via Twilio (`to` = `phone_mm63qf51 → text`, `body` = the incoming
+   `message`, verbatim — the dashboard form already lets staff review it before sending,
+   so don't template or translate it further).
 4. After each Twilio send, logs it with an **Ingest SMS** HTTP module exactly like the
    Game Day scenario's, with `"message_type": "cancellation"`.
 
