@@ -11,7 +11,9 @@ class SmsEventIn(BaseModel):
     monday_item_id: str | None = None
     location: str | None = None
     program_tier: str | None = None
-    message_type: Literal["registration", "weekly_practice", "game_day", "cancellation", "move_indoors"] | None = None
+    message_type: (
+        Literal["registration", "weekly_practice", "game_day", "cancellation", "move_indoors", "practice_on"] | None
+    ) = None
     body: str | None = None
     twilio_sid: str | None = None
     occurred_at: datetime | None = None

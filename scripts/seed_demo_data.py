@@ -33,7 +33,9 @@ def main() -> None:
                     contact_phone=phone,
                     location=location,
                     program_tier=random.choice(TIERS),
-                    message_type=random.choice(["registration", "weekly_practice", "game_day", "cancellation", "move_indoors"]),
+                    message_type=random.choice(
+                        ["registration", "weekly_practice", "game_day", "cancellation", "move_indoors", "practice_on"]
+                    ),
                     direction="outbound",
                     status="delivered",
                     body="Practice reminder for this week.",

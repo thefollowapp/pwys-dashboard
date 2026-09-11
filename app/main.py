@@ -7,7 +7,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.actions import NoticeError, send_cancellation_notice, send_move_indoors_notice
+from app.actions import NoticeError, send_cancellation_notice, send_move_indoors_notice, send_practice_on_notice
 from app.auth import NotAuthenticated, get_current_user, hash_password, login_user, logout_user, require_user, verify_password
 from app.database import Base, engine, get_db, run_column_migrations
 from app.ingest import router as ingest_router
@@ -142,11 +142,11 @@ def notice_submit(
         return templates.TemplateResponse(
             request, "notice_new.html", {**form_state, "error": "Please check the confirmation box to send."}, status_code=400
         )
-    if notice_type == "cancellation" and not notify_locations:
+    if notice_type in ("cancellation", "practice_on") and not notify_locations:
         return templates.TemplateResponse(
             request, "notice_new.html", {**form_state, "error": "Please select at least one location."}, status_code=400
         )
-    if notice_type not in ("cancellation", "move_indoors"):
+    if notice_type not in ("cancellation", "move_indoors", "practice_on"):
         return templates.TemplateResponse(
             request, "notice_new.html", {**form_state, "error": "Unknown notice type."}, status_code=400
         )
@@ -156,6 +156,10 @@ def notice_submit(
             send_cancellation_notice(locations=notify_locations, message=message, triggered_by=user.email)
             locations_note = "all locations" if set(notify_locations) == set(all_locations) else ", ".join(notify_locations)
             success = f"Cancellation notice for {locations_note} was sent to Make.com for delivery."
+        elif notice_type == "practice_on":
+            send_practice_on_notice(locations=notify_locations, message=message, triggered_by=user.email)
+            locations_note = "all locations" if set(notify_locations) == set(all_locations) else ", ".join(notify_locations)
+            success = f"Soccer is on notice for {locations_note} was sent to Make.com for delivery."
         else:
             send_move_indoors_notice(excluded_locations=excluded_locations, message=message, triggered_by=user.email)
             excluded_note = f" (excluding {', '.join(excluded_locations)})" if excluded_locations else ""

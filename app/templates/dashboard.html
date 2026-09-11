@@ -68,7 +68,7 @@
       Send notice
     </a>
   </div>
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
     <div class="bg-white rounded-lg shadow p-5">
       <div class="text-sm text-slate-500">Signup / registration texts</div>
       <div class="text-3xl font-semibold mt-1">{{ summary.registration_sent }}</div>
@@ -84,6 +84,8 @@
       <div class="text-3xl font-semibold mt-1">{{ summary.game_day_sent }}</div>
       <div class="text-xs text-slate-400 mt-1">Friday Game Day reminder</div>
     </div>
+  </div>
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
     <div class="bg-white rounded-lg shadow p-5">
       <div class="text-sm text-slate-500">Cancellation notices</div>
       <div class="text-3xl font-semibold mt-1">{{ summary.cancellation_sent }}</div>
@@ -93,6 +95,11 @@
       <div class="text-sm text-slate-500">Move indoors notices</div>
       <div class="text-3xl font-semibold mt-1">{{ summary.move_indoors_sent }}</div>
       <div class="text-xs text-slate-400 mt-1">Activity moved indoors, sent to families</div>
+    </div>
+    <div class="bg-white rounded-lg shadow p-5">
+      <div class="text-sm text-slate-500">Soccer is on notices</div>
+      <div class="text-3xl font-semibold mt-1">{{ summary.practice_on_sent }}</div>
+      <div class="text-xs text-slate-400 mt-1">Practice is happening, sent to families</div>
     </div>
   </div>
 </div>

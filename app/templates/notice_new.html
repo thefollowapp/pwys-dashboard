@@ -14,6 +14,11 @@
     ones you check below. Double-check the excluded locations and message before sending &mdash;
     this can't be undone once it goes out.
   </div>
+  <div id="warning-practice_on" class="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-lg p-3 mb-4 hidden">
+    This immediately texts every family registered at the selected location(s) to say practice
+    <strong>is</strong> happening. Double-check the locations, time, and message before sending
+    &mdash; this can't be undone once it goes out.
+  </div>
 
   <div class="bg-white shadow rounded-lg p-6">
     {% if error %}<div class="bg-red-50 text-red-700 text-sm rounded p-3 mb-4">{{ error }}</div>{% endif %}
@@ -24,8 +29,9 @@
         <label class="block text-sm font-medium text-slate-700 mb-1">Notice type</label>
         <select name="notice_type" id="notice_type"
                 class="w-full border border-slate-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-rose-600">
-          <option value="cancellation" {% if notice_type != "move_indoors" %}selected{% endif %}>Cancellation</option>
+          <option value="cancellation" {% if notice_type not in ("move_indoors", "practice_on") %}selected{% endif %}>Cancellation</option>
           <option value="move_indoors" {% if notice_type == "move_indoors" %}selected{% endif %}>Move indoors</option>
+          <option value="practice_on" {% if notice_type == "practice_on" %}selected{% endif %}>Soccer is on</option>
         </select>
       </div>
 
@@ -85,6 +91,7 @@
 <script>
   const CANCELLATION_MESSAGE = "Practice is cancelled today. We'll see you next time! / La practica de hoy esta cancelada. Nos vemos la proxima vez!";
   const MOVE_INDOORS_MESSAGE = "This week's activity is cancelled due to weather, but you can move indoors! / La actividad de esta semana esta cancelada por el clima, pero pueden moverse adentro!";
+  const PRACTICE_ON_MESSAGE = "Soccer is finally back! PWYS will be at Gaisman Park today, 5:30-6:30pm. / El futbol ha vuelto! PWYS estara en Gaisman Park hoy, de 5:30 a 6:30pm.";
 
   const typeSelect = document.getElementById('notice_type');
   const messageBox = document.getElementById('message');
@@ -101,32 +108,48 @@
     selectAllBtn.textContent = allChecked ? 'Select all' : 'Deselect all';
   });
 
+  const BUTTON_TEXT = {
+    cancellation: 'Send cancellation notice',
+    move_indoors: 'Send move indoors notice',
+    practice_on: "Send “soccer is on” notice",
+  };
+  const DEFAULT_MESSAGE = {
+    cancellation: CANCELLATION_MESSAGE,
+    move_indoors: MOVE_INDOORS_MESSAGE,
+    practice_on: PRACTICE_ON_MESSAGE,
+  };
+  const CONFIRM_TEXT = {
+    cancellation: 'Send this cancellation notice now? This will text every registered family at the selected location(s).',
+    move_indoors: 'Send this move indoors notice now? This will text every registered family except the locations you excluded.',
+    practice_on: 'Send this notice now? This will text every registered family at the selected location(s) that practice IS happening.',
+  };
+
   function applyNoticeType() {
     const type = typeSelect.value;
     const isMoveIndoors = type === 'move_indoors';
-    document.getElementById('field-location').classList.toggle('hidden', isMoveIndoors);
+    const usesNotifyList = type === 'cancellation' || type === 'practice_on';
+    document.getElementById('field-location').classList.toggle('hidden', !usesNotifyList);
     document.getElementById('field-excluded').classList.toggle('hidden', !isMoveIndoors);
-    document.getElementById('warning-cancellation').classList.toggle('hidden', isMoveIndoors);
+    document.getElementById('warning-cancellation').classList.toggle('hidden', type !== 'cancellation');
     document.getElementById('warning-move_indoors').classList.toggle('hidden', !isMoveIndoors);
-    submitBtn.textContent = isMoveIndoors ? 'Send move indoors notice' : 'Send cancellation notice';
+    document.getElementById('warning-practice_on').classList.toggle('hidden', type !== 'practice_on');
+    submitBtn.textContent = BUTTON_TEXT[type];
     if (!messageTouched) {
-      messageBox.value = isMoveIndoors ? MOVE_INDOORS_MESSAGE : CANCELLATION_MESSAGE;
+      messageBox.value = DEFAULT_MESSAGE[type];
     }
   }
   typeSelect.addEventListener('change', applyNoticeType);
   applyNoticeType();
 
   form.addEventListener('submit', (e) => {
-    const isMoveIndoors = typeSelect.value === 'move_indoors';
-    if (!isMoveIndoors && !Array.from(notifyCheckboxes).some(cb => cb.checked)) {
+    const type = typeSelect.value;
+    const usesNotifyList = type === 'cancellation' || type === 'practice_on';
+    if (usesNotifyList && !Array.from(notifyCheckboxes).some(cb => cb.checked)) {
       alert('Select at least one location to notify.');
       e.preventDefault();
       return;
     }
-    const msg = isMoveIndoors
-      ? 'Send this move indoors notice now? This will text every registered family except the locations you excluded.'
-      : 'Send this cancellation notice now? This will text every registered family at the selected location(s).';
-    if (!confirm(msg)) e.preventDefault();
+    if (!confirm(CONFIRM_TEXT[type])) e.preventDefault();
   });
 </script>
 {% endblock %}

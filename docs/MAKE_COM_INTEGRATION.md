@@ -17,7 +17,10 @@ Set `message_type` per send point so the dashboard can break activity down by ty
 - Registration Automation, message 1 (registration confirmation) → `"registration"`
 - Registration Automation, message 2 (weekly practice schedule) → `"weekly_practice"`
 - Game Day scenario → `"game_day"`
-- Cancellation Notice scenario (see section 4 below) → `"cancellation"`
+- Cancellation Notice scenario (see section 4 below) → `"cancellation"` or `"practice_on"`
+  (the scenario's webhook now carries a `message_type` field the dashboard sets per
+  notice type — map the Ingest SMS module's `message_type` to `{{message_type}}` from
+  the webhook trigger, don't hardcode it)
 - Move Indoors Notice scenario (see section 5 below) → `"move_indoors"`
 
 `POST https://pwys.revupwithai.com/api/ingest/sms`
@@ -38,9 +41,9 @@ Set `message_type` per send point so the dashboard can break activity down by ty
 Use the confirmed field paths from the existing scenario — `phone_mm63qf51 → text` for
 phone, `Locations → Text` for location (not the "Location of Next Practice (Automation
 Only)" field, which is blank ~50% of the time). `message_type` must be one of
-`registration`, `weekly_practice`, `game_day`, `cancellation`, `move_indoors` — omit it
-(or leave blank) for any send that doesn't fit one of those, the dashboard still counts
-it toward total SMS sent, just not toward a specific type card.
+`registration`, `weekly_practice`, `game_day`, `cancellation`, `move_indoors`,
+`practice_on` — omit it (or leave blank) for any send that doesn't fit one of those, the
+dashboard still counts it toward total SMS sent, just not toward a specific type card.
 
 ## 2. Logging an inbound SMS reply (including STOP)
 
@@ -83,15 +86,18 @@ Robly's opens/clicks are typically delivered via their own webhook or a polling 
 whichever mechanism is used, map it to `event_type: "opened"` / `"clicked"` /
 `"bounced"` / `"unsubscribed"` on the same endpoint.
 
-## 4. Dashboard-triggered cancellation notices
+## 4. Dashboard-triggered cancellation / "soccer is on" notices
 
-The dashboard has a "Send notice" page (`/notices/new`, "Notice type" set to "Cancellation")
-that a staff member uses to blast a cancellation text to everyone registered at one or more
-selected locations (a "Select all" shortcut covers every location at once). It does
-**not** talk to Twilio or monday.com directly — it POSTs to a new Make.com **Custom
-webhook** scenario, which reuses the existing Twilio and monday.com connections to do the
-actual lookup and send. This is the "Cancellation Notice" scenario; it's separate from
-the Registration Automation and Game Day scenarios and doesn't touch them.
+The dashboard has a "Send notice" page (`/notices/new`) that a staff member uses to blast
+a text to everyone registered at one or more selected locations (a "Select all" shortcut
+covers every location at once). Two notice types share this same targeting mechanism —
+"Cancellation" and "Soccer is on" (a positive announcement that practice IS happening,
+e.g. for a one-off return-to-play at a specific park/time) — distinguished only by the
+message wording and the `message_type` tag the dashboard attaches. It does **not** talk
+to Twilio or monday.com directly — it POSTs to a Make.com **Custom webhook** scenario,
+which reuses the existing Twilio and monday.com connections to do the actual lookup and
+send. This is the "Cancellation Notice" scenario; it's separate from the Registration
+Automation and Game Day scenarios and doesn't touch them.
 
 The webhook is protected with Make's API-key authentication (`x-make-apikey` header) —
 the dashboard sends it on every request, so this endpoint isn't callable by anyone who
@@ -107,14 +113,16 @@ Content-Type: application/json
 {
   "locations": ["Kroc Center", "Treadwell Park"],
   "message": "Practice is cancelled today. We'll see you next time! / La practica de hoy esta cancelada. Nos vemos la proxima vez!",
-  "triggered_by": "ryates051@gmail.com"
+  "triggered_by": "ryates051@gmail.com",
+  "message_type": "cancellation"
 }
 ```
 
 `locations` is always a non-empty array — the dashboard requires at least one location
 to be checked before it will submit. To reach everyone, staff use the "Select all"
 shortcut, which just checks every location box (still sent as an explicit array, not a
-special "all" value).
+special "all" value). `message_type` is either `"cancellation"` or `"practice_on"`
+depending on which notice type staff picked on the form.
 
 The scenario:
 
@@ -126,12 +134,14 @@ The scenario:
    `message`, verbatim — the dashboard form already lets staff review it before sending,
    so don't template or translate it further).
 4. After each Twilio send, logs it with an **Ingest SMS** HTTP module exactly like the
-   Game Day scenario's, with `"message_type": "cancellation"`.
+   Game Day scenario's, with `"message_type": {{message_type}}` mapped from the incoming
+   webhook field (not hardcoded — this is what lets the same scenario serve both notice
+   types and still show up correctly on the dashboard's per-type tiles).
 
 Two environment variables on Railway wire the dashboard to this webhook:
 `CANCELLATION_WEBHOOK_URL` (the webhook URL) and `CANCELLATION_WEBHOOK_API_KEY` (the
-matching API key). Until both are set, the "Send cancellation notice" page shows a clear
-error instead of silently failing.
+matching API key). Until both are set, the "Send notice" page shows a clear error
+instead of silently failing.
 
 ## 5. Dashboard-triggered "move indoors" notices
 
