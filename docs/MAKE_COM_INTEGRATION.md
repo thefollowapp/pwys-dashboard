@@ -143,6 +143,15 @@ Two environment variables on Railway wire the dashboard to this webhook:
 matching API key). Until both are set, the "Send notice" page shows a clear error
 instead of silently failing.
 
+**Admin-defined notice types** (Settings → Notice Types in the dashboard) and
+**recurring notices** (Settings → Recurring Notices) both go through this exact same
+webhook too — a `message_type` of anything other than `cancellation` just means it came
+from one of those instead of the built-in Cancellation type. Recurring notices don't
+need a Make.com scenario of their own: the dashboard keeps its own schedule internally
+and calls this webhook when one is due, the same way a staff member's "Send now" click
+does. Nothing in Make.com needs to change when PWYS adds a new notice type or recurring
+notice — that's the point.
+
 ## 5. Dashboard-triggered "move indoors" notices
 
 Same dashboard page (`/notices/new`, "Notice type" set to "Move indoors") also blasts a

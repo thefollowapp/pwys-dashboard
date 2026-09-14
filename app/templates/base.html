@@ -14,6 +14,10 @@
       <div class="font-semibold">Play Where You Stay &middot; Communications Dashboard</div>
       <nav class="flex items-center gap-4 text-sm">
         <a href="/dashboard" class="hover:underline">Dashboard</a>
+        {% if user.is_admin %}
+        <a href="/admin/notice-types" class="hover:underline">Notice Types</a>
+        <a href="/admin/recurring-notices" class="hover:underline">Recurring Notices</a>
+        {% endif %}
         <a href="/account" class="hover:underline">Account</a>
         <span class="text-emerald-200">{{ user.name }}</span>
         <form method="post" action="/logout" class="inline">

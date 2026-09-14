@@ -10,6 +10,10 @@ class NotAuthenticated(Exception):
     """Raised by require_user when there's no valid session; main.py redirects to /login."""
 
 
+class NotAdmin(Exception):
+    """Raised by require_admin when the logged-in user isn't an admin; main.py returns 403."""
+
+
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
@@ -37,4 +41,10 @@ def require_user(request: Request, db: Session = Depends(get_db)) -> User:
     user = get_current_user(request, db)
     if user is None:
         raise NotAuthenticated()
+    return user
+
+
+def require_admin(user: User = Depends(require_user)) -> User:
+    if not user.is_admin:
+        raise NotAdmin()
     return user

@@ -34,7 +34,11 @@ def run_column_migrations() -> None:
     inspector = inspect(engine)
     if "sms_events" not in inspector.get_table_names():
         return
-    existing_columns = {col["name"] for col in inspector.get_columns("sms_events")}
-    if "message_type" not in existing_columns:
+    columns = {col["name"]: col for col in inspector.get_columns("sms_events")}
+    if "message_type" not in columns:
         with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE sms_events ADD COLUMN message_type VARCHAR(32)"))
+            conn.execute(text("ALTER TABLE sms_events ADD COLUMN message_type VARCHAR(64)"))
+    elif not DATABASE_URL.startswith("sqlite") and columns["message_type"].get("type").length == 32:
+        # Custom notice-type keys and recurring-notice slugs can run longer than the original limit.
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE sms_events ALTER COLUMN message_type TYPE VARCHAR(64)"))

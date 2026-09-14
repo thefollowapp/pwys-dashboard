@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Notice types · PWYS{% endblock %}
+{% block content %}
+<div class="max-w-2xl">
+  <a href="/dashboard" class="text-sm text-slate-500 hover:underline">&larr; Back to dashboard</a>
+  <h1 class="text-lg font-semibold mt-2 mb-1">Notice types</h1>
+  <p class="text-sm text-slate-500 mb-4">
+    These show up in the "Notice type" dropdown on the Send Notice page, alongside the built-in Cancellation
+    and Move Indoors types. Each one texts registered families at whichever locations staff pick.
+  </p>
+
+  <div class="bg-white shadow rounded-lg p-6 mb-6">
+    {% if error %}<div class="bg-red-50 text-red-700 text-sm rounded p-3 mb-4">{{ error }}</div>{% endif %}
+    <h2 class="text-sm font-medium text-slate-700 mb-3">Add a notice type</h2>
+    <form method="post" action="/admin/notice-types" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Name</label>
+        <input type="text" name="label" required placeholder="e.g. Neighborhood World Cup"
+               class="w-full border border-slate-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-rose-600">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-1">Default message</label>
+        <textarea name="default_message" required rows="3" placeholder="English / Spanish, e.g. how it's usually written for cancellation and move-indoors notices"
+                  class="w-full border border-slate-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-rose-600"></textarea>
+        <div class="text-xs text-slate-400 mt-1">Staff can still edit the message before sending &mdash; this is just what pre-fills.</div>
+      </div>
+      <button type="submit" class="bg-rose-600 hover:bg-rose-700 text-white rounded px-4 py-2 text-sm font-medium">
+        Add notice type
+      </button>
+    </form>
+  </div>
+
+  <div class="bg-white shadow rounded-lg overflow-hidden">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="text-left text-slate-500 border-b">
+          <th class="py-2 px-4">Name</th>
+          <th class="py-2 px-4">Default message</th>
+          <th class="py-2 px-4">Status</th>
+          <th class="py-2 px-4"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for nt in notice_types %}
+        <tr class="border-b last:border-0 {{ 'opacity-50' if not nt.active }}">
+          <td class="py-2 px-4 font-medium">{{ nt.label }}</td>
+          <td class="py-2 px-4 text-slate-500 max-w-xs truncate" title="{{ nt.default_message }}">{{ nt.default_message }}</td>
+          <td class="py-2 px-4">
+            <span class="inline-block px-2 py-0.5 rounded text-xs font-medium {{ 'bg-emerald-100 text-emerald-700' if nt.active else 'bg-slate-100 text-slate-500' }}">
+              {{ 'Active' if nt.active else 'Inactive' }}
+            </span>
+          </td>
+          <td class="py-2 px-4 text-right">
+            <form method="post" action="/admin/notice-types/{{ nt.id }}/toggle">
+              <button type="submit" class="text-xs text-rose-600 hover:underline">
+                {{ 'Deactivate' if nt.active else 'Reactivate' }}
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="py-4 px-4 text-slate-400">No custom notice types yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

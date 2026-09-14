@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -11,9 +10,9 @@ class SmsEventIn(BaseModel):
     monday_item_id: str | None = None
     location: str | None = None
     program_tier: str | None = None
-    message_type: (
-        Literal["registration", "weekly_practice", "game_day", "cancellation", "move_indoors", "practice_on"] | None
-    ) = None
+    # System type ("registration" | "weekly_practice" | "game_day" | "cancellation" | "move_indoors"), or an
+    # admin-defined NoticeType.key / RecurringNotice.message_type — not a fixed enum since those are user-managed.
+    message_type: str | None = Field(default=None, max_length=64)
     body: str | None = None
     twilio_sid: str | None = None
     occurred_at: datetime | None = None

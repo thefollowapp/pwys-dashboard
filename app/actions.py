@@ -33,7 +33,10 @@ def _post_to_webhook(url_env: str, api_key_env: str, payload: dict, webhook_labe
         raise NoticeError(f"Make.com didn't accept the request: {exc}") from exc
 
 
-def _send_targeted_notice(locations: list[str], message: str, triggered_by: str, message_type: str) -> None:
+def send_targeted_notice(locations: list[str], message: str, triggered_by: str, message_type: str) -> None:
+    """Text everyone registered at `locations`. Shared by one-off notices, custom notice
+    types, and recurring notices alike — `message_type` is just what gets logged for
+    the dashboard's per-type metrics."""
     _post_to_webhook(
         "CANCELLATION_WEBHOOK_URL",
         "CANCELLATION_WEBHOOK_API_KEY",
@@ -43,11 +46,7 @@ def _send_targeted_notice(locations: list[str], message: str, triggered_by: str,
 
 
 def send_cancellation_notice(locations: list[str], message: str, triggered_by: str) -> None:
-    _send_targeted_notice(locations, message, triggered_by, "cancellation")
-
-
-def send_practice_on_notice(locations: list[str], message: str, triggered_by: str) -> None:
-    _send_targeted_notice(locations, message, triggered_by, "practice_on")
+    send_targeted_notice(locations, message, triggered_by, "cancellation")
 
 
 def send_move_indoors_notice(excluded_locations: list[str], message: str, triggered_by: str) -> None:

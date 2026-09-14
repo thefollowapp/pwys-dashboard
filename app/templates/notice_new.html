@@ -5,20 +5,7 @@
   <a href="/dashboard" class="text-sm text-slate-500 hover:underline">&larr; Back to dashboard</a>
   <h1 class="text-lg font-semibold mt-2 mb-4">Send notice</h1>
 
-  <div id="warning-cancellation" class="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-lg p-3 mb-4">
-    This immediately texts every family registered at the selected location(s). Double-check the
-    locations and message before sending &mdash; this can't be undone once it goes out.
-  </div>
-  <div id="warning-move_indoors" class="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-lg p-3 mb-4 hidden">
-    This immediately texts every registered family at every location <strong>except</strong> the
-    ones you check below. Double-check the excluded locations and message before sending &mdash;
-    this can't be undone once it goes out.
-  </div>
-  <div id="warning-practice_on" class="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-lg p-3 mb-4 hidden">
-    This immediately texts every family registered at the selected location(s) to say practice
-    <strong>is</strong> happening. Double-check the locations, time, and message before sending
-    &mdash; this can't be undone once it goes out.
-  </div>
+  <div id="warning" class="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-lg p-3 mb-4"></div>
 
   <div class="bg-white shadow rounded-lg p-6">
     {% if error %}<div class="bg-red-50 text-red-700 text-sm rounded p-3 mb-4">{{ error }}</div>{% endif %}
@@ -29,9 +16,11 @@
         <label class="block text-sm font-medium text-slate-700 mb-1">Notice type</label>
         <select name="notice_type" id="notice_type"
                 class="w-full border border-slate-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-rose-600">
-          <option value="cancellation" {% if notice_type not in ("move_indoors", "practice_on") %}selected{% endif %}>Cancellation</option>
+          <option value="cancellation" {% if notice_type != "move_indoors" and notice_type not in (notice_types | map(attribute="key") | list) %}selected{% endif %}>Cancellation</option>
           <option value="move_indoors" {% if notice_type == "move_indoors" %}selected{% endif %}>Move indoors</option>
-          <option value="practice_on" {% if notice_type == "practice_on" %}selected{% endif %}>Soccer is on</option>
+          {% for nt in notice_types %}
+          <option value="{{ nt.key }}" {% if notice_type == nt.key %}selected{% endif %}>{{ nt.label }}</option>
+          {% endfor %}
         </select>
       </div>
 
@@ -86,17 +75,53 @@
       </button>
     </form>
   </div>
+
+  {% if user.is_admin %}
+  <div class="text-xs text-slate-400 mt-4">
+    Need a new notice type? <a href="/admin/notice-types" class="text-rose-600 hover:underline">Manage notice types</a>.
+  </div>
+  {% endif %}
 </div>
 
 <script>
   const CANCELLATION_MESSAGE = "Practice is cancelled today. We'll see you next time! / La practica de hoy esta cancelada. Nos vemos la proxima vez!";
   const MOVE_INDOORS_MESSAGE = "This week's activity is cancelled due to weather, but you can move indoors! / La actividad de esta semana esta cancelada por el clima, pero pueden moverse adentro!";
-  const PRACTICE_ON_MESSAGE = "Soccer is finally back! PWYS will be at Gaisman Park today, 5:30-6:30pm. / El futbol ha vuelto! PWYS estara en Gaisman Park hoy, de 5:30 a 6:30pm.";
+
+  // Built-ins first, then every admin-defined notice type from the server.
+  const TYPE_INFO = {
+    cancellation: {
+      label: 'cancellation',
+      message: CANCELLATION_MESSAGE,
+      button: 'Send cancellation notice',
+      warning: "This immediately texts every family registered at the selected location(s). Double-check the locations and message before sending — this can't be undone once it goes out.",
+      confirm: 'Send this cancellation notice now? This will text every registered family at the selected location(s).',
+      usesNotifyList: true,
+    },
+    move_indoors: {
+      label: 'move indoors',
+      message: MOVE_INDOORS_MESSAGE,
+      button: 'Send move indoors notice',
+      warning: "This immediately texts every registered family at every location except the ones you check below. Double-check the excluded locations and message before sending — this can't be undone once it goes out.",
+      confirm: 'Send this move indoors notice now? This will text every registered family except the locations you excluded.',
+      usesNotifyList: false,
+    },
+    {% for nt in notice_types %}
+    {{ nt.key | tojson }}: {
+      label: {{ nt.label | tojson }},
+      message: {{ nt.default_message | tojson }},
+      button: 'Send {{ nt.label }} notice',
+      warning: "This immediately texts every family registered at the selected location(s). Double-check the locations and message before sending — this can't be undone once it goes out.",
+      confirm: 'Send this notice now? This will text every registered family at the selected location(s).',
+      usesNotifyList: true,
+    },
+    {% endfor %}
+  };
 
   const typeSelect = document.getElementById('notice_type');
   const messageBox = document.getElementById('message');
   const form = document.getElementById('notice-form');
   const submitBtn = document.getElementById('submit-btn');
+  const warningBox = document.getElementById('warning');
   const notifyCheckboxes = document.querySelectorAll('input[name="notify_locations"]');
   const selectAllBtn = document.getElementById('select-all-locations');
   let messageTouched = {{ 'true' if message else 'false' }};
@@ -108,48 +133,28 @@
     selectAllBtn.textContent = allChecked ? 'Select all' : 'Deselect all';
   });
 
-  const BUTTON_TEXT = {
-    cancellation: 'Send cancellation notice',
-    move_indoors: 'Send move indoors notice',
-    practice_on: "Send “soccer is on” notice",
-  };
-  const DEFAULT_MESSAGE = {
-    cancellation: CANCELLATION_MESSAGE,
-    move_indoors: MOVE_INDOORS_MESSAGE,
-    practice_on: PRACTICE_ON_MESSAGE,
-  };
-  const CONFIRM_TEXT = {
-    cancellation: 'Send this cancellation notice now? This will text every registered family at the selected location(s).',
-    move_indoors: 'Send this move indoors notice now? This will text every registered family except the locations you excluded.',
-    practice_on: 'Send this notice now? This will text every registered family at the selected location(s) that practice IS happening.',
-  };
-
   function applyNoticeType() {
-    const type = typeSelect.value;
-    const isMoveIndoors = type === 'move_indoors';
-    const usesNotifyList = type === 'cancellation' || type === 'practice_on';
-    document.getElementById('field-location').classList.toggle('hidden', !usesNotifyList);
-    document.getElementById('field-excluded').classList.toggle('hidden', !isMoveIndoors);
-    document.getElementById('warning-cancellation').classList.toggle('hidden', type !== 'cancellation');
-    document.getElementById('warning-move_indoors').classList.toggle('hidden', !isMoveIndoors);
-    document.getElementById('warning-practice_on').classList.toggle('hidden', type !== 'practice_on');
-    submitBtn.textContent = BUTTON_TEXT[type];
+    const info = TYPE_INFO[typeSelect.value];
+    if (!info) return;
+    document.getElementById('field-location').classList.toggle('hidden', !info.usesNotifyList);
+    document.getElementById('field-excluded').classList.toggle('hidden', info.usesNotifyList);
+    warningBox.textContent = info.warning;
+    submitBtn.textContent = info.button;
     if (!messageTouched) {
-      messageBox.value = DEFAULT_MESSAGE[type];
+      messageBox.value = info.message;
     }
   }
   typeSelect.addEventListener('change', applyNoticeType);
   applyNoticeType();
 
   form.addEventListener('submit', (e) => {
-    const type = typeSelect.value;
-    const usesNotifyList = type === 'cancellation' || type === 'practice_on';
-    if (usesNotifyList && !Array.from(notifyCheckboxes).some(cb => cb.checked)) {
+    const info = TYPE_INFO[typeSelect.value];
+    if (info.usesNotifyList && !Array.from(notifyCheckboxes).some(cb => cb.checked)) {
       alert('Select at least one location to notify.');
       e.preventDefault();
       return;
     }
-    if (!confirm(CONFIRM_TEXT[type])) e.preventDefault();
+    if (!confirm(info.confirm)) e.preventDefault();
   });
 </script>
 {% endblock %}
